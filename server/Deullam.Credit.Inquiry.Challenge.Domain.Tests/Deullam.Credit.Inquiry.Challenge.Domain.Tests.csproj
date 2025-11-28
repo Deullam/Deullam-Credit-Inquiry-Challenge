@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -30,6 +30,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Common.Tests\Deullam.Credit.Inquiry.Challenge.Common.Tests.csproj" />
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Domain\Deullam.Credit.Inquiry.Challenge.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <Folder Include="Contexts\" />
-    <Folder Include="Features\" />
+    <Folder Include="Features\GerenciarCredito\" />
   </ItemGroup>
 
 </Project>
