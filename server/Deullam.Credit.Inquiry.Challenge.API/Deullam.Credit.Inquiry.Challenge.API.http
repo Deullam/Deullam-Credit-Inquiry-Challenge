@@ -1,0 +1,6 @@
+@Deullam.Credit.Inquiry.Challenge.API_HostAddress = http://localhost:5177
+
+GET {{Deullam.Credit.Inquiry.Challenge.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
