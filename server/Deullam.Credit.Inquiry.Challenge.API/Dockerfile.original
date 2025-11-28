@@ -1,0 +1,32 @@
+# Estágio 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copia os arquivos .csproj de cada projeto.
+# Os caminhos agora são relativos à pasta 'server', que será nosso contexto.
+COPY ["Deullam.Credit.Inquiry.Challenge.API/Deullam.Credit.Inquiry.Challenge.API.csproj", "Deullam.Credit.Inquiry.Challenge.API/"]
+COPY ["Deullam.Credit.Inquiry.Challenge.Application/Deullam.Credit.Inquiry.Challenge.Application.csproj", "Deullam.Credit.Inquiry.Challenge.Application/"]
+COPY ["Deullam.Credit.Inquiry.Challenge.Domain/Deullam.Credit.Inquiry.Challenge.Domain.csproj", "Deullam.Credit.Inquiry.Challenge.Domain/"]
+COPY ["Deullam.Credit.Inquiry.Challenge.Infra/Deullam.Credit.Inquiry.Challenge.Infra.csproj", "Deullam.Credit.Inquiry.Challenge.Infra/"]
+COPY ["Deullam.Credit.Inquiry.Challenge.Infra.Data/Deullam.Credit.Inquiry.Challenge.Infra.Data.csproj", "Deullam.Credit.Inquiry.Challenge.Infra.Data/"]
+COPY ["Deullam.Credit.Inquiry.Challenge.IoC/Deullam.Credit.Inquiry.Challenge.IoC.csproj", "Deullam.Credit.Inquiry.Challenge.IoC/"]
+
+# Restaura as dependências
+RUN dotnet restore "Deullam.Credit.Inquiry.Challenge.API/Deullam.Credit.Inquiry.Challenge.API.csproj"
+
+# Copia todo o código-fonte (relativo ao contexto 'server')
+COPY . .
+
+# Define o diretório de trabalho para a pasta da API para os comandos de build e publish
+WORKDIR "/src/Deullam.Credit.Inquiry.Challenge.API"
+RUN dotnet build "Deullam.Credit.Inquiry.Challenge.API.csproj" -c Release -o /app/build
+
+# Estágio 2: Publish
+FROM build AS publish
+RUN dotnet publish "Deullam.Credit.Inquiry.Challenge.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Estágio 3: Final (Runtime)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "Deullam.Credit.Inquiry.Challenge.API.dll"]
