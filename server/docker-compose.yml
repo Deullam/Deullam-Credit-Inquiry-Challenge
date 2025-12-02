@@ -1,16 +1,18 @@
 name: credit-inquiry
-version: '3.8'
 
 services:
   deullam.credit.inquiry.challenge.api:
     image: ${DOCKER_REGISTRY-}deullamcreditinquirychallengeapi
+    restart: unless-stopped
     build:
       context: .
-      dockerfile: Deullam.Credit.Inquiry.Challenge.API/Dockerfile
-    container_name: credit-inquiry-api
+      dockerfile: server/Deullam.Credit.Inquiry.Challenge.API/Dockerfile
+    container_name: credit-inquiry-Api
     ports:
       - "8080:8080"
       - "8081:8081"
+    env_file:
+      - .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080;https://+:8081
@@ -23,6 +25,8 @@ services:
     container_name: credit-inquiry-db
     ports:
       - "5432:5432"
+    env_file:
+      - .env
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -30,6 +34,23 @@ services:
     volumes:
       - credit_inquiry_postgres_data:/var/lib/postgresql/data
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: credit-inquiry-PgAdmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 443
+    ports:
+      - "82:80"
+      - "443:443"
+    depends_on:
+      - postgres-db
+    volumes:
+      - credit_inquiry_pgadmin_data:/var/lib/pgadmin
+
 volumes:
   credit_inquiry_postgres_data:
+    driver: local
+  credit_inquiry_pgadmin_data:
     driver: local
