@@ -1,20 +1,25 @@
-﻿namespace Deullam.Credit.Inquiry.Challenge.Application.Tests.Features.GerenciarCredito
-{
-    using AutoMapper;
-    using Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito;
-    using Deullam.Credit.Inquiry.Challenge.Common.Tests.Features.GerenciarCredito;
-    using Deullam.Credit.Inquiry.Challenge.Domain.Features.GerenciarCredito;
-    using FluentAssertions;
-    using Moq;
-    using NUnit.Framework;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
+﻿using AutoMapper;
+using Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito;
+using Deullam.Credit.Inquiry.Challenge.Common.Tests.Features.GerenciarCredito;
+using Deullam.Credit.Inquiry.Challenge.Domain.Exceptions;
+using Deullam.Credit.Inquiry.Challenge.Domain.Features.GerenciarCredito;
+using FluentAssertions;
+using FluentValidation;
+using FluentValidation.Results;
+using Moq;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
+namespace Deullam.Credit.Inquiry.Challenge.Application.Tests.Features.GerenciarCredito
+{
     [TestFixture]
     public class CreditoServiceTests
     {
         private Mock<ICreditoRepository> _mockRepository;
         private Mock<IMapper> _mockMapper;
+        private Mock<IValidator<CreditoDto>> _mockValidator;
         private ICreditoService _creditoService;
 
         [SetUp]
@@ -22,95 +27,104 @@
         {
             _mockRepository = new Mock<ICreditoRepository>();
             _mockMapper = new Mock<IMapper>();
-            _creditoService = new CreditoService(_mockRepository.Object, _mockMapper.Object);
+            _mockValidator = new Mock<IValidator<CreditoDto>>();
+
+            _creditoService = new CreditoService(
+                _mockRepository.Object,
+                _mockMapper.Object,
+                _mockValidator.Object
+            );
+
+           
+            _mockValidator.Setup(v => v.ValidateAsync(It.IsAny<CreditoDto>(), It.IsAny<System.Threading.CancellationToken>()))
+                          .ReturnsAsync(new ValidationResult()); 
         }
 
-        [Test(Description = "Deve retornar lista de DTOs quando a NFS-e existir.")]
-        public async Task GetByNfseAsync_DeveRetornarListaDeCreditoDtos_QuandoExistirem()
-        {
-            // Arrange
-            var numeroNfse = "7891011";
-            var creditosEntidades = ObjectMother.GetDefaultCreditoList();
-
-            var creditoDto = ObjectMother.GetDefaultCreditoDto();
-
-            _mockRepository.Setup(repo => repo.GetByNfseAsync(numeroNfse))
-                           .ReturnsAsync(creditosEntidades);
-            _mockMapper.Setup(m => m.Map<IEnumerable<CreditoDto>>(creditosEntidades))
-                       .Returns(new List<CreditoDto> { creditoDto });
-
-            // Act
-            var resultado = await _creditoService.GetByNfseAsync(numeroNfse);
-
-            // Assert
-            resultado.Should().NotBeNull();
-            resultado.Should().ContainSingle();
-            resultado.Should().BeEquivalentTo(new List<CreditoDto> { creditoDto });
-            _mockRepository.Verify(repo => repo.GetByNfseAsync(numeroNfse), Times.Once);
-        }
-
-        [Test(Description = "Deve retornar DTO quando o número do crédito existir.")]
-        public async Task GetByNumeroCreditoAsync_DeveRetornarCreditoDto_QuandoExistir()
+        [Test]
+        public async Task GetByNumeroCreditoAsync_QuandoCreditoExiste_DeveRetornarCreditoDto()
         {
             // Arrange
             var creditoEntidade = ObjectMother.GetDefaultCredito();
             var creditoDto = ObjectMother.GetDefaultCreditoDto();
-            var numeroCredito = creditoEntidade.NumeroCredito;
-
-            _mockRepository.Setup(repo => repo.GetByNumeroCreditoAsync(numeroCredito))
-                           .ReturnsAsync(creditoEntidade);
-
-            _mockMapper.Setup(m => m.Map<CreditoDto>(creditoEntidade))
-                       .Returns(creditoDto);
+            _mockRepository.Setup(repo => repo.GetByNumeroCreditoAsync(creditoEntidade.NumeroCredito)).ReturnsAsync(creditoEntidade);
+            _mockMapper.Setup(m => m.Map<CreditoDto>(creditoEntidade)).Returns(creditoDto);
 
             // Act
-            var resultado = await _creditoService.GetByNumeroCreditoAsync(numeroCredito);
+            var resultado = await _creditoService.GetByNumeroCreditoAsync(creditoEntidade.NumeroCredito);
 
             // Assert
             resultado.Should().NotBeNull();
             resultado.Should().BeEquivalentTo(creditoDto);
-            _mockRepository.Verify(repo => repo.GetByNumeroCreditoAsync(numeroCredito), Times.Once);
+            _mockRepository.Verify(repo => repo.GetByNumeroCreditoAsync(creditoEntidade.NumeroCredito), Times.Once);
         }
 
-        [Test(Description = "Deve adicionar o crédito quando ele não existir.")]
-        public async Task CreateIfNotExistsAsync_DeveAdicionarCredito_QuandoNaoExistir()
+        [Test]
+        public void GetByNumeroCreditoAsync_QuandoCreditoNaoExiste_DeveLancarNotFoundException()
         {
             // Arrange
-            var novoCreditoDto = ObjectMother.GetDefaultCreditoDto();
-            var creditoEntidade = ObjectMother.GetDefaultCredito();
-            var numeroCredito = novoCreditoDto.NumeroCredito;
-
-            _mockRepository.Setup(repo => repo.ExistsByNumeroCreditoAsync(numeroCredito))
-                           .ReturnsAsync(false);
-
-            _mockMapper.Setup(m => m.Map<Credito>(novoCreditoDto))
-                       .Returns(creditoEntidade);
+            var numeroCreditoInexistente = "NAO-EXISTE";
+            _mockRepository.Setup(repo => repo.GetByNumeroCreditoAsync(numeroCreditoInexistente)).ReturnsAsync((Credito)null);
 
             // Act
-            await _creditoService.CreateIfNotExistsAsync(novoCreditoDto);
+            var acao = async () => await _creditoService.GetByNumeroCreditoAsync(numeroCreditoInexistente);
+
+            // Assert
+            acao.Should().ThrowAsync<NotFoundException>();
+            _mockRepository.Verify(repo => repo.GetByNumeroCreditoAsync(numeroCreditoInexistente), Times.Once);
+        }
+
+        [Test]
+        public async Task IntegrarCreditosAsync_QuandoCreditoNaoExiste_DeveChamarAddAsync()
+        {
+            // Arrange
+            var creditoDto = ObjectMother.GetDefaultCreditoDto();
+            var creditoEntidade = ObjectMother.GetDefaultCredito();
+            _mockRepository.Setup(repo => repo.ExistsByNumeroCreditoAsync(creditoDto.NumeroCredito)).ReturnsAsync(false);
+            _mockMapper.Setup(m => m.Map<Credito>(creditoDto)).Returns(creditoEntidade);
+
+            // Act
+            await _creditoService.IntegrarCreditosAsync(new List<CreditoDto> { creditoDto });
 
             // Assert
             _mockRepository.Verify(repo => repo.AddAsync(creditoEntidade), Times.Once);
         }
 
-        [Test(Description = "NÃO deve adicionar o crédito quando ele já existir.")]
-        public async Task CreateIfNotExistsAsync_NaoDeveAdicionarCredito_QuandoJaExistir()
+        [Test]
+        public async Task IntegrarCreditosAsync_QuandoCreditoJaExiste_DeveLancarConflictException()
         {
             // Arrange
-            var creditoExistenteDto = ObjectMother.GetDefaultCreditoDto();
-            var numeroCredito = creditoExistenteDto.NumeroCredito;
-
-            _mockRepository.Setup(repo => repo.ExistsByNumeroCreditoAsync(numeroCredito))
-                           .ReturnsAsync(true);
+            var creditoDto = ObjectMother.GetDefaultCreditoDto();
+            _mockRepository.Setup(repo => repo.ExistsByNumeroCreditoAsync(creditoDto.NumeroCredito)).ReturnsAsync(true);
 
             // Act
-            await _creditoService.CreateIfNotExistsAsync(creditoExistenteDto);
+            var acao = async () => await _creditoService.IntegrarCreditosAsync(new List<CreditoDto> { creditoDto });
 
             // Assert
-            // Garante que o método AddAsync NUNCA foi chamado.
+            await acao.Should().ThrowAsync<ConflictException>();
             _mockRepository.Verify(repo => repo.AddAsync(It.IsAny<Credito>()), Times.Never);
-            // Garante que o Mapper também NUNCA foi chamado, pois a lógica parou antes.
-            _mockMapper.Verify(m => m.Map<Credito>(It.IsAny<CreditoDto>()), Times.Never);
+        }
+
+        [Test]
+        public void IntegrarCreditosAsync_QuandoDtoInvalido_DeveLancarUnprocessableEntityException()
+        {
+            // Arrange
+            var creditoDtoInvalido = ObjectMother.GetDtoComValorIssqnInvalido();
+            var errosDeValidacao = new List<ValidationFailure>
+            {
+                new ValidationFailure("ValorIssqn", "O valor do ISSQN deve ser maior que zero.")
+            };
+            var resultadoValidacaoFalha = new ValidationResult(errosDeValidacao);
+
+            _mockValidator.Setup(v => v.ValidateAsync(creditoDtoInvalido, It.IsAny<System.Threading.CancellationToken>()))
+                          .ReturnsAsync(resultadoValidacaoFalha);
+
+            // Act
+            var acao = async () => await _creditoService.IntegrarCreditosAsync(new List<CreditoDto> { creditoDtoInvalido });
+
+            // Assert
+            acao.Should().ThrowAsync<UnprocessableEntityException>()
+                .WithMessage("*O valor do ISSQN deve ser maior que zero.*"); // Verifica se a mensagem de erro está contida na exceção.
+            _mockRepository.Verify(repo => repo.AddAsync(It.IsAny<Credito>()), Times.Never);
         }
     }
 }
