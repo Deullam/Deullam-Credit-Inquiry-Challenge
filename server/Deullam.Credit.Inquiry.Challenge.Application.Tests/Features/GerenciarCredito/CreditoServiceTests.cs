@@ -14,16 +14,14 @@
     public class CreditoServiceTests
     {
         private Mock<ICreditoRepository> _mockRepository;
-        private Mock<IMapper> _mockMapper; // 1. Adicionar mock para o IMapper
+        private Mock<IMapper> _mockMapper;
         private ICreditoService _creditoService;
 
         [SetUp]
         public void Setup()
         {
             _mockRepository = new Mock<ICreditoRepository>();
-            _mockMapper = new Mock<IMapper>(); // 2. Inicializar o mock do IMapper
-
-            // 3. Injetar ambos os mocks no serviço
+            _mockMapper = new Mock<IMapper>();
             _creditoService = new CreditoService(_mockRepository.Object, _mockMapper.Object);
         }
 
@@ -33,14 +31,11 @@
             // Arrange
             var numeroNfse = "7891011";
             var creditosEntidades = ObjectMother.GetDefaultCreditoList();
-            // O serviço agora deve retornar DTOs. Vamos criar um DTO para o Assert.
+
             var creditoDto = ObjectMother.GetDefaultCreditoDto();
 
             _mockRepository.Setup(repo => repo.GetByNfseAsync(numeroNfse))
                            .ReturnsAsync(creditosEntidades);
-
-            // Configura o mock do Mapper: Quando for pedido para mapear uma lista de Credito,
-            // retorne uma lista contendo nosso DTO de exemplo.
             _mockMapper.Setup(m => m.Map<IEnumerable<CreditoDto>>(creditosEntidades))
                        .Returns(new List<CreditoDto> { creditoDto });
 
@@ -49,7 +44,7 @@
 
             // Assert
             resultado.Should().NotBeNull();
-            resultado.Should().ContainSingle(); // Verifica se a lista tem 1 item, como configuramos no mock do mapper
+            resultado.Should().ContainSingle();
             resultado.Should().BeEquivalentTo(new List<CreditoDto> { creditoDto });
             _mockRepository.Verify(repo => repo.GetByNfseAsync(numeroNfse), Times.Once);
         }
@@ -65,7 +60,6 @@
             _mockRepository.Setup(repo => repo.GetByNumeroCreditoAsync(numeroCredito))
                            .ReturnsAsync(creditoEntidade);
 
-            // Configura o mock do Mapper para o mapeamento de um único objeto
             _mockMapper.Setup(m => m.Map<CreditoDto>(creditoEntidade))
                        .Returns(creditoDto);
 
@@ -89,7 +83,6 @@
             _mockRepository.Setup(repo => repo.ExistsByNumeroCreditoAsync(numeroCredito))
                            .ReturnsAsync(false);
 
-            // Configura o mock do Mapper para a conversão de DTO para Entidade
             _mockMapper.Setup(m => m.Map<Credito>(novoCreditoDto))
                        .Returns(creditoEntidade);
 
@@ -97,7 +90,6 @@
             await _creditoService.CreateIfNotExistsAsync(novoCreditoDto);
 
             // Assert
-            // Verifica se o repositório foi chamado com a entidade que o mapper retornou
             _mockRepository.Verify(repo => repo.AddAsync(creditoEntidade), Times.Once);
         }
 

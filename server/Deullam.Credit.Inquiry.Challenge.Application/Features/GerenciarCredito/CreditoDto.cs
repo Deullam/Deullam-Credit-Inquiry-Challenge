@@ -1,5 +1,4 @@
-﻿// Namespace: Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
-namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
+﻿namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
 {
     public class CreditoDto
     {

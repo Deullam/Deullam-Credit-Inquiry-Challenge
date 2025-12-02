@@ -38,7 +38,6 @@ namespace Deullam.Credit.Inquiry.Challenge.Common.Tests.Features.GerenciarCredit
             // Reutiliza o método que já temos para o primeiro item
                 GetDefaultCredito(), 
         
-                // Adiciona um segundo crédito para simular uma lista
                 new Credito
                 {
                     Id = 2,
@@ -56,8 +55,6 @@ namespace Deullam.Credit.Inquiry.Challenge.Common.Tests.Features.GerenciarCredit
             };
         }
 
-
-        // Adicione este método à partial class ObjectMother
 
         /// <summary>
         /// Cria uma instância padrão de um CreditoDto para uso em testes.

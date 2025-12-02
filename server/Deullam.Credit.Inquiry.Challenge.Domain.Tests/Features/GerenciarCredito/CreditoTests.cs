@@ -1,7 +1,5 @@
-﻿// Namespace: Deullam.Credit.Inquiry.Challenge.Domain.Tests.Features.GerenciarCredito
-namespace Deullam.Credit.Inquiry.Challenge.Domain.Tests.Features.GerenciarCredito
+﻿namespace Deullam.Credit.Inquiry.Challenge.Domain.Tests.Features.GerenciarCredito
 {
-    // Adicionando o using para o nosso projeto de testes comuns
     using Deullam.Credit.Inquiry.Challenge.Common.Tests.Features.GerenciarCredito;
     using Deullam.Credit.Inquiry.Challenge.Domain.Features.GerenciarCredito;
     using FluentAssertions;
@@ -15,7 +13,6 @@ namespace Deullam.Credit.Inquiry.Challenge.Domain.Tests.Features.GerenciarCredit
         public void Credito_DeveSerCriadoComSucesso_QuandoDadosValidosForemFornecidos()
         {
             //Arrange
-            // A lógica de criação do objeto de teste está centralizada e reutilizável.
             Credito creditoTemplate = ObjectMother.GetDefaultCredito();
 
             // Act

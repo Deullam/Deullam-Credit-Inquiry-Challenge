@@ -22,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\server\Deullam.Credit.Inquiry.Challenge.Application\Deullam.Credit.Inquiry.Challenge.Application.csproj" />
-    <ProjectReference Include="..\server\Deullam.Credit.Inquiry.Challenge.Common.Tests\Deullam.Credit.Inquiry.Challenge.Common.Tests.csproj" />
-    <ProjectReference Include="..\server\Deullam.Credit.Inquiry.Challenge.Domain\Deullam.Credit.Inquiry.Challenge.Domain.csproj" />
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Application\Deullam.Credit.Inquiry.Challenge.Application.csproj" />
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Common.Tests\Deullam.Credit.Inquiry.Challenge.Common.Tests.csproj" />
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Domain\Deullam.Credit.Inquiry.Challenge.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
