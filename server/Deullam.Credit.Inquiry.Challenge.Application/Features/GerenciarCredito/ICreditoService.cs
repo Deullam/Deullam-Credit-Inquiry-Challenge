@@ -28,5 +28,7 @@ namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
         /// </summary>
         /// <param name="creditoDto">O DTO contendo os dados do crédito a ser criado.</param>
         Task CreateIfNotExistsAsync(CreditoDto creditoDto);
+
+        Task IntegrarCreditosAsync(IEnumerable<CreditoDto> creditosDto);
     }
 }

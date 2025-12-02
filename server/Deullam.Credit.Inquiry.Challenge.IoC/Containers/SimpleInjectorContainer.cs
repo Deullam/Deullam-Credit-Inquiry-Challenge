@@ -1,8 +1,10 @@
 ﻿using Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito;
+using Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito.Validators;
 using Deullam.Credit.Inquiry.Challenge.Application.Mappers;
 using Deullam.Credit.Inquiry.Challenge.Domain.Features.GerenciarCredito;
 using Deullam.Credit.Inquiry.Challenge.Infra.Data.Contexts;
 using Deullam.Credit.Inquiry.Challenge.Infra.Data.Features.GerenciarCredito;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,7 @@ namespace Deullam.Credit.Inquiry.Challenge.IoC.Containers
         {
             services.AddAutoMapper(typeof(MappingProfile).Assembly);
             services.AddScoped<ICreditoService, CreditoService>();
+            services.AddScoped<IValidator<CreditoDto>, CreditoDtoValidator>();
             return services;
         }
 
