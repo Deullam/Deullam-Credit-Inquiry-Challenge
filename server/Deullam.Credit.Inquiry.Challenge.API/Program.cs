@@ -1,5 +1,5 @@
-using Deullam.Credit.Inquiry.Challenge.IoC.Containers; // Adicionar o using para o nosso projeto IoC
-
+using Deullam.Credit.Inquiry.Challenge.IoC.Containers;
+using Deullam.Credit.Inquiry.Challenge.API.Middlewares;
 var builder = WebApplication.CreateBuilder(args);
 
 // Método para registrar os serviços da Aplicação (AutoMapper, CreditoService)
@@ -15,6 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
