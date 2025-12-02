@@ -13,20 +13,31 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Deullam.Credit.Inquiry.Challenge.API/Deullam.Credit.Inquiry.Challenge.API.csproj", "Deullam.Credit.Inquiry.Challenge.API/"]
+COPY ["Deullam.Credit.Inquiry.Challenge.Application/Deullam.Credit.Inquiry.Challenge.Application.csproj", "Deullam.Credit.Inquiry.Challenge.Application/"]
 COPY ["Deullam.Credit.Inquiry.Challenge.Domain/Deullam.Credit.Inquiry.Challenge.Domain.csproj", "Deullam.Credit.Inquiry.Challenge.Domain/"]
 COPY ["Deullam.Credit.Inquiry.Challenge.Infra/Deullam.Credit.Inquiry.Challenge.Infra.csproj", "Deullam.Credit.Inquiry.Challenge.Infra/"]
-RUN dotnet restore "./Deullam.Credit.Inquiry.Challenge.API/Deullam.Credit.Inquiry.Challenge.API.csproj"
+COPY ["Deullam.Credit.Inquiry.Challenge.Infra.Data/Deullam.Credit.Inquiry.Challenge.Infra.Data.csproj", "Deullam.Credit.Inquiry.Challenge.Infra.Data/"]
+COPY ["Deullam.Credit.Inquiry.Challenge.IoC/Deullam.Credit.Inquiry.Challenge.IoC.csproj", "Deullam.Credit.Inquiry.Challenge.IoC/"]
+
+RUN dotnet restore "Deullam.Credit.Inquiry.Challenge.API/Deullam.Credit.Inquiry.Challenge.API.csproj"
+
 COPY . .
 WORKDIR "/src/Deullam.Credit.Inquiry.Challenge.API"
-RUN dotnet build "./Deullam.Credit.Inquiry.Challenge.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "Deullam.Credit.Inquiry.Challenge.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
 
 # Esta fase é usada para publicar o projeto de serviço a ser copiado para a fase final
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Deullam.Credit.Inquiry.Challenge.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "Deullam.Credit.Inquiry.Challenge.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-# Esta fase é usada na produção ou quando executada no VS no modo normal (padrão quando não está usando a configuração de Depuração)
-FROM base AS final
+
+# Usa a imagem de runtime do ASP.NET, que é muito menor que a do SDK.
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+
+# Copia os arquivos publicados do estágio 'publish' para o diretório de trabalho da imagem final.
 COPY --from=publish /app/publish .
+
+# Define o comando de entrada para executar a aplicação quando o contêiner iniciar.
 ENTRYPOINT ["dotnet", "Deullam.Credit.Inquiry.Challenge.API.dll"]

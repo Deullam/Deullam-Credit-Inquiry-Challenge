@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: server/Deullam.Credit.Inquiry.Challenge.API/Dockerfile
+      dockerfile: Deullam.Credit.Inquiry.Challenge.API/Dockerfile
     container_name: credit-inquiry-Api
     ports:
       - "8080:8080"
