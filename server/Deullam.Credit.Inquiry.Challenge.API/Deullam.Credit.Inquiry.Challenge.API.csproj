@@ -32,8 +32,4 @@
     <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.IoC\Deullam.Credit.Inquiry.Challenge.IoC.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\Feature\GerenciarCredito\" />
-  </ItemGroup>
-
 </Project>
