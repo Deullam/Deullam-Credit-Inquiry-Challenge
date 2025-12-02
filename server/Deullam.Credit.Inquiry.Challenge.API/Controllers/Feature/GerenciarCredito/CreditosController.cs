@@ -1,17 +1,13 @@
 ﻿using Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-// Namespace corrigido conforme sua especificação.
 namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCredito
 {
     /// <summary>
     /// Controller responsável por gerenciar as operações relacionadas a Créditos Constituídos.
     /// </summary>
     [ApiController]
-    [Route("api/creditos")] // Rota base corrigida para corresponder ao requisito.
+    [Route("api/creditos")]
     public class CreditosController : ControllerBase
     {
         private readonly ICreditoService _creditoService;
@@ -23,6 +19,7 @@ namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCred
 
         /// <summary>
         /// Retorna os detalhes de um crédito específico com base no seu número.
+        /// Rota: GET /api/creditos/credito/{numeroCredito}
         /// </summary>
         [HttpGet("credito/{numeroCredito}")]
         [ProducesResponseType(typeof(CreditoDto), 200)]
@@ -35,8 +32,9 @@ namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCred
 
         /// <summary>
         /// Retorna uma lista de créditos constituídos com base no número da NFS-e.
+        /// Rota: GET /api/creditos/nfse/{numeroNfse}
         /// </summary>
-        [HttpGet("{numeroNfse}")]
+        [HttpGet("nfse/{numeroNfse}")]
         [ProducesResponseType(typeof(IEnumerable<CreditoDto>), 200)]
         public async Task<IActionResult> GetByNfse(string numeroNfse)
         {
@@ -46,10 +44,13 @@ namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCred
 
         /// <summary>
         /// Integra uma lista de créditos constituídos.
+        /// Rota: POST /api/creditos/integrar-credito-constituido
         /// </summary>
         [HttpPost("integrar-credito-constituido")]
         [ProducesResponseType(typeof(object), 202)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(409)]
+        [ProducesResponseType(422)]
         public async Task<IActionResult> IntegrarCreditoConstituido([FromBody] List<CreditoDto> creditos)
         {
             if (creditos == null || !creditos.Any())
@@ -57,10 +58,10 @@ namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCred
                 return BadRequest("A lista de créditos não pode ser nula ou vazia.");
             }
 
-            // Agora esta chamada funciona, pois o método existe no serviço.
             await _creditoService.IntegrarCreditosAsync(creditos);
 
             return Accepted(new { success = true });
         }
     }
 }
+
