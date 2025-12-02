@@ -15,6 +15,8 @@
     <PackageReference Include="Castle.Core" Version="5.2.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.22" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.22" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.22" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.22">
       <PrivateAssets>all</PrivateAssets>
@@ -32,6 +34,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.API\Deullam.Credit.Inquiry.Challenge.API.csproj" />
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Common.Tests\Deullam.Credit.Inquiry.Challenge.Common.Tests.csproj" />
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Infra.Data\Deullam.Credit.Inquiry.Challenge.Infra.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>
