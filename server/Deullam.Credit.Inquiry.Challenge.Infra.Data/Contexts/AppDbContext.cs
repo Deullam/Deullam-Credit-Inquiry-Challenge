@@ -75,7 +75,58 @@ namespace Deullam.Credit.Inquiry.Challenge.Infra.Data.Contexts
                     .HasColumnName("base_calculo")
                     .HasColumnType("DECIMAL(15, 2)")
                     .IsRequired();
+
+
+                entity.HasData(
+                   new Credito
+                   {
+                       Id = 1, // É importante definir o ID manualmente para o seed.
+                       NumeroCredito = "123456",
+                       NumeroNfse = "7891011",
+                       DataConstituicao = new System.DateTime(2024, 2, 25),
+                       ValorIssqn = 1500.75m,
+                       TipoCredito = "ISSQN",
+                       SimplesNacional = true, // bool para 'Sim'
+                       Aliquota = 5.0m,
+                       ValorFaturado = 30000.00m,
+                       ValorDeducao = 5000.00m,
+                       BaseCalculo = 25000.00m
+                   },
+                   new Credito
+                   {
+                       Id = 2,
+                       NumeroCredito = "789012",
+                       NumeroNfse = "7891011",
+                       DataConstituicao = new System.DateTime(2024, 2, 26),
+                       ValorIssqn = 1200.50m,
+                       TipoCredito = "ISSQN",
+                       SimplesNacional = false, // bool para 'Não'
+                       Aliquota = 4.5m,
+                       ValorFaturado = 25000.00m,
+                       ValorDeducao = 4000.00m,
+                       BaseCalculo = 21000.00m
+                   },
+                   new Credito
+                   {
+                       Id = 3,
+                       NumeroCredito = "654321",
+                       NumeroNfse = "1122334",
+                       DataConstituicao = new System.DateTime(2024, 1, 15),
+                       ValorIssqn = 800.50m,
+                       TipoCredito = "Outros",
+                       SimplesNacional = true, // bool para 'Sim'
+                       Aliquota = 3.5m,
+                       ValorFaturado = 20000.00m,
+                       ValorDeducao = 3000.00m,
+                       BaseCalculo = 17000.00m
+                   }
+               );
+                // --- FIM DO BLOCO DE SEED DE DADOS ---
+
+
             });
+
+
 
             base.OnModelCreating(modelBuilder);
         }

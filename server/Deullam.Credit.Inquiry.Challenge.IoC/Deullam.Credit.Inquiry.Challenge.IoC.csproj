@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Application\Deullam.Credit.Inquiry.Challenge.Application.csproj" />
     <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Infra.Data\Deullam.Credit.Inquiry.Challenge.Infra.Data.csproj" />
+    <ProjectReference Include="..\Deullam.Credit.Inquiry.Challenge.Infra\Deullam.Credit.Inquiry.Challenge.Infra.csproj" />
   </ItemGroup>
 
 </Project>
