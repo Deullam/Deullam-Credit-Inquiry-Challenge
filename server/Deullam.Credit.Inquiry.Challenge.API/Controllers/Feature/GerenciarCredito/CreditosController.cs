@@ -1,6 +1,6 @@
 ﻿using Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito;
+using Deullam.Credit.Inquiry.Challenge.Application.Messaging;
 using Microsoft.AspNetCore.Mvc;
-using Deullam.Credit.Inquiry.Challenge.Application.Messaging; 
 using System.Text.Json;
 
 namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCredito
@@ -13,19 +13,19 @@ namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCred
     public class CreditosController : ControllerBase
     {
         private readonly ICreditoService _creditoService;
-    private readonly IMessagePublisher _messagePublisher;
-    private const string TopicName = "integrar-credito-constituido-entry";
+        private readonly IMessagePublisher _messagePublisher;
+        private const string TopicName = "integrar-credito-constituido-entry";
 
-    /// <summary>
-    /// Inicializa uma nova instância da classe <see cref="CreditosController"/>.
-    /// </summary>
-    /// <param name="creditoService">O serviço para operações de consulta de crédito.</param>
-    /// <param name="messagePublisher">O serviço para publicar mensagens para integração.</param>
-    public CreditosController(ICreditoService creditoService, IMessagePublisher messagePublisher)
-    {
-        _creditoService = creditoService;
-        _messagePublisher = messagePublisher;
-    }
+        /// <summary>
+        /// Inicializa uma nova instância da classe <see cref="CreditosController"/>.
+        /// </summary>
+        /// <param name="creditoService">O serviço para operações de consulta de crédito.</param>
+        /// <param name="messagePublisher">O serviço para publicar mensagens para integração.</param>
+        public CreditosController(ICreditoService creditoService, IMessagePublisher messagePublisher)
+        {
+            _creditoService = creditoService;
+            _messagePublisher = messagePublisher;
+        }
 
         /// <summary>
         /// Retorna os detalhes de um crédito específico com base no seu número.

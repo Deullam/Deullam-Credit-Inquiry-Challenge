@@ -20,8 +20,11 @@ services:
       - ConnectionStrings__Kafka=${KAFKA_CONNECTION_STRING}
 
     depends_on:
-      - postgres-db
-      - kafka
+      postgres-db:
+          condition: service_healthy
+      kafka:
+          condition: service_started
+
 
   postgres-db:
     image: postgres:15-alpine
@@ -36,6 +39,11 @@ services:
       - POSTGRES_DB=${DB_NAME}
     volumes:
       - credit_inquiry_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+       test: pg_isready -U ${DB_USER} -d ${DB_NAME}
+       interval: 10s
+       timeout: 5s
+       retries: 5
 
   pgadmin:
     image: dpage/pgadmin4

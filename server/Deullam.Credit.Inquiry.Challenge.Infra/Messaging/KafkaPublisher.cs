@@ -1,8 +1,6 @@
 ﻿using Confluent.Kafka;
 using Deullam.Credit.Inquiry.Challenge.Application.Messaging;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Threading.Tasks;
 
 namespace Deullam.Credit.Inquiry.Challenge.Infra.Messaging
 {

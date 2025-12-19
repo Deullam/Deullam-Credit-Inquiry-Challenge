@@ -8,12 +8,12 @@ namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
     public class CreditoService : ICreditoService
     {
         private readonly ICreditoRepository _creditoRepository;
-        private readonly IMapper _mapper; 
+        private readonly IMapper _mapper;
         private readonly IValidator<CreditoDto> _creditoDtoValidator;
 
         public CreditoService(
             ICreditoRepository creditoRepository,
-            IMapper mapper, 
+            IMapper mapper,
             IValidator<CreditoDto> creditoDtoValidator)
         {
             _creditoRepository = creditoRepository;
@@ -53,7 +53,7 @@ namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
         {
             if (creditosDto == null || !creditosDto.Any())
             {
-                return; 
+                return;
             }
 
             foreach (var creditoDto in creditosDto)

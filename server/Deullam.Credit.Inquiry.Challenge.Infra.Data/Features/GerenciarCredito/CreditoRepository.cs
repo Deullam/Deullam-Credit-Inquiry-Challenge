@@ -1,9 +1,6 @@
 ﻿using Deullam.Credit.Inquiry.Challenge.Domain.Features.GerenciarCredito;
 using Deullam.Credit.Inquiry.Challenge.Infra.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Deullam.Credit.Inquiry.Challenge.Infra.Data.Features.GerenciarCredito
 {

@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
+﻿namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
 {
     /// <summary>
     /// Define o contrato para os serviços de negócio relacionados a Créditos.

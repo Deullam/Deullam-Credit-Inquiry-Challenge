@@ -1,16 +1,16 @@
-﻿using Deullam.Credit.Inquiry.Challenge.Infra.Data.Contexts;
+﻿using Deullam.Credit.Inquiry.Challenge.API;
+using Deullam.Credit.Inquiry.Challenge.Infra.Data.Contexts;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
 //using Microsoft.VisualStudio.TestPlatform.TestHost;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Deullam.Credit.Inquiry.Challenge.API;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Deullam.Credit.Inquiry.Challenge.Integration.Tests.Setup
 {
-    public class WebAppFactory : WebApplicationFactory<Program> 
+    public class WebAppFactory : WebApplicationFactory<Program>
     {
         private readonly string _connectionString;
 

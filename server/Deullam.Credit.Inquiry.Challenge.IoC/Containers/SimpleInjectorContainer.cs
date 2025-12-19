@@ -3,9 +3,9 @@ using Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito.Val
 using Deullam.Credit.Inquiry.Challenge.Application.Mappers;
 using Deullam.Credit.Inquiry.Challenge.Application.Messaging;
 using Deullam.Credit.Inquiry.Challenge.Domain.Features.GerenciarCredito;
-using Deullam.Credit.Inquiry.Challenge.Infra.Messaging;
 using Deullam.Credit.Inquiry.Challenge.Infra.Data.Contexts;
 using Deullam.Credit.Inquiry.Challenge.Infra.Data.Features.GerenciarCredito;
+using Deullam.Credit.Inquiry.Challenge.Infra.Messaging;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
