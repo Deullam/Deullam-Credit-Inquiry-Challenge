@@ -89,7 +89,6 @@ namespace Deullam.Credit.Inquiry.Challenge.API.Controllers.Feature.GerenciarCred
         /// <response code="202">Accepted - Retorna quando a lista de créditos é recebida com sucesso e as mensagens são enfileiradas para processamento.</response>
         /// <response code="400">Bad Request - Retorna se a lista de créditos enviada for nula ou vazia.</response>
         /// <response code="500">Internal Server Error - Retorna se ocorrer um erro inesperado durante a publicação no serviço de mensageria.</response>
-        [HttpPost("integrar-credito-constituido")]
         [ProducesResponseType(StatusCodes.Status202Accepted)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]

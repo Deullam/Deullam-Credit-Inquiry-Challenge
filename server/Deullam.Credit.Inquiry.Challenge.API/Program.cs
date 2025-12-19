@@ -70,6 +70,7 @@ namespace Deullam.Credit.Inquiry.Challenge.API
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
             });
 
+            app.UseRouting();
             app.UseHttpsRedirection();
             app.UseAuthorization();
 

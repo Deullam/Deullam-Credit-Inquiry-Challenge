@@ -7,11 +7,11 @@ namespace Deullam.Credit.Inquiry.Challenge.Application.Features.GerenciarCredito
         public CreditoDtoValidator()
         {
             RuleFor(c => c.NumeroCredito)
-                .NotEmpty().WithMessage("O número do crédito é obrigatório.")
+                .NotEmpty().WithMessage("O número do crédito é obrigatório.").MinimumLength(3)
                 .MaximumLength(50).WithMessage("O número do crédito não pode exceder 50 caracteres.");
 
             RuleFor(c => c.NumeroNfse)
-                .NotEmpty().WithMessage("O número da NFS-e é obrigatório.")
+                .NotEmpty().WithMessage("O número da NFS-e é obrigatório.").MinimumLength(3)
                 .MaximumLength(50).WithMessage("O número da NFS-e não pode exceder 50 caracteres.");
 
             RuleFor(c => c.DataConstituicao)
