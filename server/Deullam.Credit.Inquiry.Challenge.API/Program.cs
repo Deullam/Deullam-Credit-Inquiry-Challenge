@@ -28,7 +28,7 @@ namespace Deullam.Credit.Inquiry.Challenge.API
             // Adiciona e configura os Health Checks
             builder.Services.AddHealthChecks()
                 .AddNpgSql(
-                    builder.Configuration.GetConnectionString("Postgres")!,
+                    builder.Configuration.GetConnectionString("DefaultConnection")!,
                     name: "PostgreSQL",
                     failureStatus: HealthStatus.Unhealthy,
                     tags: new[] { "database", "ready" })
@@ -76,50 +76,8 @@ namespace Deullam.Credit.Inquiry.Challenge.API
             // Mapeia os controllers como o passo final do roteamento
             app.MapControllers();
 
-            ApplyDatabaseMigrations(app);
-
             app.Run();
 
-
-            // --- MÉTODO AUXILIAR PARA APLICAR MIGRAÇÕES ---
-            static void ApplyDatabaseMigrations(IApplicationBuilder app)
-            {
-                using (var scope = app.ApplicationServices.CreateScope())
-                {
-                    var services = scope.ServiceProvider;
-                    var logger = services.GetRequiredService<ILogger<Program>>();
-                    var context = services.GetRequiredService<AppDbContext>();
-                    var environment = services.GetRequiredService<IWebHostEnvironment>();
-
-                    try
-                    {
-                        logger.LogInformation("Verificando migrações pendentes do banco de dados...");
-
-                        if (context.Database.GetPendingMigrations().Any())
-                        {
-                            if (environment.IsDevelopment())
-                            {
-                                logger.LogWarning("AMBIENTE DE DESENVOLVIMENTO: Aplicando migrações pendentes automaticamente...");
-                                context.Database.Migrate();
-                                logger.LogInformation("Migrações aplicadas com sucesso.");
-                            }
-                            else
-                            {
-                                logger.LogCritical("AMBIENTE DE PRODUÇÃO: Existem migrações pendentes! A aplicação automática está desativada. Aplique as migrações manualmente.");
-                            }
-                        }
-                        else
-                        {
-                            logger.LogInformation("O banco de dados já está atualizado.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Ocorreu um erro crítico ao verificar ou aplicar as migrações do banco de dados.");
-                        throw; // Descomente se a falha na migração deve impedir a inicialização.
-                    }
-                }
-            }
         }
     }
 }

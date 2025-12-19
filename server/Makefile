@@ -42,3 +42,9 @@ start: up logs
 
 # Define quais comandos não geram arquivos com o mesmo nome
 .PHONY: help up down destroy logs build start
+
+## migrate: Aplica todas as migrações pendentes ao banco de dados.
+## Requer que o contêiner do banco de dados esteja rodando (use 'make up' primeiro).
+migrate:
+	@echo " Aplicando migracoes do EF Core ao banco de dados..."
+	@dotnet ef database update --project Deullam.Credit.Inquiry.Challenge.Infra.Data --startup-project Deullam.Credit.Inquiry.Challenge.API
