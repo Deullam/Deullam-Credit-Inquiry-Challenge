@@ -13,14 +13,15 @@ DB_CONNECTION ?= Host=localhost;Port=5432;Database=credit_inquiry_db;Username=cr
 
 .DEFAULT_GOAL := help
 
-.PHONY: help env up down destroy logs build start migrate test
+.PHONY: help env up down destroy logs build start migrate test test-e2e
 
 # Comando padrão, exibe a ajuda
 help:
 	@echo "Comandos disponíveis:"
 	@echo "  make up        - Sobe os contêineres em segundo plano."
 	@echo "  make migrate   - Aplica as migrações do EF Core ao banco (requer 'make up')."
-	@echo "  make test      - Roda todos os testes da solução."
+	@echo "  make test      - Roda os testes unitários e de integração (exclui os E2E)."
+	@echo "  make test-e2e  - Roda os testes E2E contra a pilha real (requer make up + make migrate)."
 	@echo "  make down      - Para os contêineres."
 	@echo "  make destroy   - Para os contêineres e REMOVE OS VOLUMES (apaga o banco)."
 	@echo "  make logs      - Exibe os logs dos contêineres em tempo real."
@@ -70,6 +71,13 @@ migrate:
 	@echo "🗃️  Aplicando migrações do EF Core ao banco de dados..."
 	dotnet ef database update --project $(EF_PROJECT) --startup-project $(EF_STARTUP) --connection "$(DB_CONNECTION)"
 
-# Roda toda a suíte: unitários e integração
+# Roda unitários e integração. Exclui a suíte E2E (categoria "E2E"), que exige a pilha do
+# docker-compose no ar e falha alto sem ela; para rodá-la, use `make test-e2e`.
 test:
-	dotnet test Deullam.Credit.Inquiry.Challenge.sln
+	dotnet test Deullam.Credit.Inquiry.Challenge.sln --filter "TestCategory!=E2E"
+
+## test-e2e: Roda a suíte E2E contra a pilha REAL (API em localhost:8080, Kafka em localhost:29092).
+## Requer `make up` e `make migrate` antes. Sem a pilha, a suíte falha explicando o que subir.
+## Para apontar para outra pilha: E2E_API_BASE_URL=... E2E_KAFKA_BOOTSTRAP=... make test-e2e
+test-e2e:
+	dotnet test Deullam.Credit.Inquiry.Challenge.E2E.Tests
