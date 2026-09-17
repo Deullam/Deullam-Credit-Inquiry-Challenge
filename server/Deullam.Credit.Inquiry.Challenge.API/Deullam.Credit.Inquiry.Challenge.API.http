@@ -1,6 +1,33 @@
-@Deullam.Credit.Inquiry.Challenge.API_HostAddress = http://localhost:5177
+@Deullam.Credit.Inquiry.Challenge.API_HostAddress = http://localhost:8080
 
-GET {{Deullam.Credit.Inquiry.Challenge.API_HostAddress}}/weatherforecast/
+### Integra creditos constituidos (202 Accepted: a gravacao acontece no consumidor Kafka)
+POST {{Deullam.Credit.Inquiry.Challenge.API_HostAddress}}/api/creditos/integrar-credito-constituido
+Content-Type: application/json
+
+[
+  {
+    "numeroCredito": "123456",
+    "numeroNfse": "7891011",
+    "dataConstituicao": "2024-02-25",
+    "valorIssqn": 1500.75,
+    "tipoCredito": "ISSQN",
+    "simplesNacional": "Sim",
+    "aliquota": 5.0,
+    "valorFaturado": 30000.00,
+    "valorDeducao": 5000.00,
+    "baseCalculo": 25000.00
+  }
+]
+
+### Consulta um credito pelo numero
+GET {{Deullam.Credit.Inquiry.Challenge.API_HostAddress}}/api/creditos/credito/123456
 Accept: application/json
+
+### Lista os creditos de uma NFS-e (200 com lista vazia quando nao ha registros)
+GET {{Deullam.Credit.Inquiry.Challenge.API_HostAddress}}/api/creditos/nfse/7891011
+Accept: application/json
+
+### Readiness (PostgreSQL e Kafka)
+GET {{Deullam.Credit.Inquiry.Challenge.API_HostAddress}}/health/ready
 
 ###

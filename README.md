@@ -156,7 +156,7 @@ cd server
 dotnet test Deullam.Credit.Inquiry.Challenge.sln     # ou: make test
 ```
 
-São três projetos de teste, todos em **NUnit** com **FluentAssertions**:
+São quatro projetos com sufixo `.Tests`. Três têm testes, todos em **NUnit** com **FluentAssertions**; o quarto, `...Common.Tests`, é só a biblioteca de ObjectMothers compartilhada pelos outros e não contém teste algum:
 
 | Projeto | Cobre |
 | :--- | :--- |
@@ -167,8 +167,10 @@ São três projetos de teste, todos em **NUnit** com **FluentAssertions**:
 ### O que a suíte de integração cobre, e com que dublês
 
 A API sobe inteira em memória com `WebApplicationFactory<Program>`. Pipeline HTTP, middleware de
-exceção, controllers, AutoMapper, FluentValidation, repositórios e EF Core são o código de
-produção, sem alteração. Só há **dois dublês**, ambos para não precisar de um broker real:
+exceção, controllers, AutoMapper, repositórios e EF Core são o código de
+produção, sem alteração. A validação do FluentValidation (`CreditoDtoValidator`) existe, mas hoje
+nenhum caminho HTTP a exercita: na borda vale a validação automática do `[ApiController]` sobre os
+campos `required` do `CreditoDto`. Só há **dois dublês**, ambos para não precisar de um broker real:
 
 - **Produtor Kafka** — a abstração `IMessagePublisher`, implementada em produção por
   `KafkaPublisher`, é substituída por um `FakeMessagePublisher` que guarda tópico e payload de
