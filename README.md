@@ -139,7 +139,8 @@ make destroy   # para os contêineres e apaga os volumes
 | :--- | :--- |
 | `make up` | Cria o `.env` se faltar, constrói as imagens se necessário e sobe todos os serviços em segundo plano. |
 | `make migrate` | Aplica as migrations do EF Core ao banco. Requer o banco no ar. |
-| `make test` | Roda todos os testes da solução. |
+| `make test` | Roda os testes unitários e de integração (exclui a suíte E2E). |
+| `make test-e2e` | Roda a suíte E2E contra a pilha real. Requer `make up` e `make migrate`. |
 | `make logs` | Exibe os logs de todos os serviços em tempo real. |
 | `make build` | Reconstrói as imagens sem cache. |
 | `make start` | `up` seguido de `logs`. |
@@ -153,16 +154,17 @@ make destroy   # para os contêineres e apaga os volumes
 
 ```bash
 cd server
-dotnet test Deullam.Credit.Inquiry.Challenge.sln     # ou: make test
+dotnet test Deullam.Credit.Inquiry.Challenge.sln --filter "TestCategory!=E2E"     # ou: make test
 ```
 
-São quatro projetos com sufixo `.Tests`. Três têm testes, todos em **NUnit** com **FluentAssertions**; o quarto, `...Common.Tests`, é só a biblioteca de ObjectMothers compartilhada pelos outros e não contém teste algum:
+São cinco projetos com sufixo `.Tests`. Quatro têm testes, todos em **NUnit** com **FluentAssertions**; o quinto, `...Common.Tests`, é só a biblioteca de ObjectMothers compartilhada pelos outros e não contém teste algum. O filtro acima deixa de fora a suíte E2E, que exige a pilha do `docker-compose` no ar (ver [Testes E2E contra a pilha real](#testes-e2e-contra-a-pilha-real)):
 
 | Projeto | Cobre |
 | :--- | :--- |
 | `...Domain.Tests` | criação da entidade `Credito` com dados válidos. |
 | `...Application.Tests` | `CreditoService` com repositório em `Moq`: consulta, ausência de registro, duplicidade e validação. |
 | `...Integration.Tests` | a API inteira, via `WebApplicationFactory`. |
+| `...E2E.Tests` | a pilha real do `docker-compose`, por HTTP e Kafka puros, sem dublê. |
 
 ### O que a suíte de integração cobre, e com que dublês
 
@@ -207,6 +209,42 @@ depende da ordem de execução.
 `/health/ready` sai degradado na suíte de propósito: o host de teste não tem broker Kafka, então
 o teste afirma o que vale nos dois casos — que o endpoint está mapeado e cobre as duas
 dependências críticas.
+
+### Testes E2E contra a pilha real
+
+A suíte `...E2E.Tests` não tem dublê nenhum: fala HTTP puro com a API publicada pelo compose
+(`http://localhost:8080`) e Confluent.Kafka puro com o broker (`localhost:29092`, listener
+`PLAINTEXT_HOST`). É a única que exercita o `CreditoConsumerService` de verdade — a mensagem
+atravessa o Kafka real e quem grava no PostgreSQL é o consumidor rodando dentro do contêiner da API.
+
+```bash
+cd server
+make up        # sobe API, PostgreSQL, Kafka e pgAdmin
+make migrate   # aplica as migrations (o seed da NFS-e 7891011 é pré-requisito de um dos cenários)
+make test-e2e  # = dotnet test Deullam.Credit.Inquiry.Challenge.E2E.Tests
+make down
+```
+
+Antes do primeiro teste, a suíte espera `/health/ready` responder `200` por até 90 s; se não
+responder, falha com a instrução de rodar `make up` + `make migrate` — nunca passa em silêncio sem
+a pilha. Dois ajustes por variável de ambiente, ambos opcionais: `E2E_API_BASE_URL` (default
+`http://localhost:8080`) e `E2E_KAFKA_BOOTSTRAP` (default `localhost:29092`).
+
+O que ela cobre, rastreado pelas categorias `CI-01` a `CI-06` e pelo `[Description]` de cada teste:
+
+| Jornada | Afirma |
+| :--- | :--- |
+| `CI-01` | `202` no POST; `404` no GET imediato; `200` com todos os campos depois que o consumidor real processa; o crédito aparece na consulta por NFS-e; uma lista com N créditos gera N mensagens no tópico real e cada um fica consultável. |
+| `CI-02` | POST inválido (lista nula/vazia, campo obrigatório ausente, tipo incompatível, JSON inválido, objeto em vez de array) responde `400` e **nenhuma mensagem nova chega ao tópico real** — provado por um consumidor Kafka de prova posicionado nos offsets finais do tópico antes de cada POST. |
+| `CI-03` | `404` para número de crédito que nunca existiu; `200` com `[]` para NFS-e sem créditos. |
+| `CI-04` | Reenviar o mesmo número de crédito responde `202`, não cria segunda linha, não altera o registro original, e um crédito enviado depois continua sendo processado (o consumidor sobrevive à `ConflictException`). |
+| `CI-05` | A consulta reflete o seed da migration `AddSeedData`: NFS-e `7891011` com os créditos `123456` (`SimplesNacional = "Sim"`) e `789012` (`"Não"`), campo a campo. |
+| `CI-06` | Com tudo no ar, `/health/ready` responde `200 Healthy` com `PostgreSQL` e `Kafka` `Healthy` e `/health/self` responde `200 Healthy` com `entries` vazio. Os cenários com dependência fora do ar ainda não estão cobertos. |
+
+Todos os identificadores gerados levam o prefixo `E2E-<id da execução>`, então a suíte pode rodar
+várias vezes contra o mesmo banco sem colidir com o seed nem com execuções anteriores. Os testes
+rodam em série de propósito: a prova de "nada foi publicado" do `CI-02` depende de nenhum outro
+teste estar publicando ao mesmo tempo.
 
 ---
 
