@@ -1,141 +1,224 @@
 <div align="center">
 
-
 # Desafio Técnico: API de Consulta de Créditos Constituídos
 
-Este repositório contém a solução para um desafio técnico que consiste na criação de um serviço de back-end para gerenciar e consultar créditos tributários. 
+Serviço de back-end para integrar e consultar créditos tributários constituídos.
+
 </div>
 
 <div align="center">
 
-![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet )
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql )
-![Kafka](https://img.shields.io/badge/Apache%20Kafka-black?style=for-the-badge&logo=apachekafka )
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker )
-![Arquitetura](https://img.shields.io/badge/Arquitetura-Clean-informational?style=for-the-badge )
+![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-black?style=for-the-badge&logo=apachekafka)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)
+![Arquitetura](https://img.shields.io/badge/Arquitetura-Clean-informational?style=for-the-badge)
 
 </div>
 
+---
+
+## Visão geral
+
+A aplicação é uma API REST em .NET 8 organizada em Clean Architecture, com PostgreSQL,
+Apache Kafka e Docker Compose. Ela expõe duas operações:
+
+1. **Integração assíncrona de créditos.** Um `POST` recebe uma lista de créditos, publica cada
+   um como mensagem em um tópico do Kafka e responde **202 Accepted** na hora, sem esperar a
+   gravação. Um `BackgroundService` consome o tópico e persiste os créditos.
+2. **Consulta de créditos.** Endpoints `GET` leem do banco os créditos já processados.
+
+Há também endpoints de **health check** para liveness e readiness.
+
+### O que o 202 significa aqui
+
+Esse é o ponto central do desenho e vale entender antes de testar a API: o `POST` confirma o
+**enfileiramento**, não a gravação. Logo depois de um `202`, um `GET` do mesmo crédito ainda
+responde `404` — ele só aparece quando o consumidor processar a mensagem. Em consequência:
+
+- a recusa de duplicados (`ConflictException`) acontece **no consumidor**, ao processar a
+  mensagem, e por isso nunca vira um `409` na resposta do `POST`;
+- o `POST` só responde `400` para o que dá para julgar na borda: lista nula ou vazia e corpo
+  que não desserializa no `CreditoDto` (campos obrigatórios ausentes, tipos errados).
+
+## Arquitetura
+
+- **Domain** — entidade `Credito`, exceções de negócio e a interface do repositório. Não
+  depende de nenhuma outra camada da solução.
+- **Application** — `CreditoService`, DTOs, validadores e as abstrações de serviços externos
+  (`IMessagePublisher`). Depende apenas de Domain.
+- **Infra / Infra.Data** — implementações: `KafkaPublisher` (Confluent.Kafka), `AppDbContext`,
+  `CreditoRepository` e as migrations do EF Core.
+- **IoC** — registro das dependências das camadas acima.
+- **API** — controllers, middleware de exceção, health checks, o `CreditoConsumerService` e o
+  `Dockerfile`.
+
+O Kafka no meio do caminho de escrita desacopla a API da persistência: a API absorve picos sem
+empurrá-los para o banco e responde rápido.
+
+## Tecnologias
+
+| Item | Versão / biblioteca |
+| :--- | :--- |
+| Framework | .NET 8 (C# 12) |
+| Banco de dados | PostgreSQL 15 |
+| ORM | Entity Framework Core 8 |
+| Mensageria | Apache Kafka (`Confluent.Kafka`) |
+| Containerização | Docker + Docker Compose v2 |
+| Validação | FluentValidation |
+| Mapeamento | AutoMapper |
+| Documentação | Swagger / OpenAPI (Swashbuckle) |
+| Testes | NUnit, FluentAssertions, Moq, Testcontainers |
 
 ---
 
-## ✨ Visão Geral
-A aplicação foi desenvolvida utilizando .NET 8, Clean Architecture, Docker, PostgreSQL e Apache Kafka, com foco em boas práticas de desenvolvimento, testabilidade e escalabilidade.
-O sistema expõe uma API RESTful para duas operações principais:
+## Como executar
 
-1.  **Integração Assíncrona de Créditos:** Um endpoint `POST` recebe uma lista de créditos, publica cada um como uma mensagem em um tópico do Kafka e retorna uma resposta imediata (`202 Accepted`). Um serviço de background consome essas mensagens, valida e persiste os créditos no banco de dados, garantindo que o sistema seja resiliente e responsivo.
-2.  **Consulta de Créditos:** Endpoints `GET` permitem a consulta dos créditos já processados e armazenados no banco de dados, retornando os dados em tempo real.
+### Pré-requisitos
 
-Além disso, a aplicação expõe endpoints de **Health Check** para monitoramento da saúde do serviço e de suas dependências.
+| Requisito | Versão | Para quê |
+| :--- | :--- | :--- |
+| [Docker Desktop](https://www.docker.com/get-started) (ou Docker Engine) | 24+, com Compose v2 | subir API, PostgreSQL, Kafka e pgAdmin |
+| [.NET SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | 8.0.401 ou superior | rodar as migrations e os testes no host |
+| `make` | GNU Make 4+ | atalhos do `Makefile` (no Windows, via Git Bash ou WSL) |
+| Git | qualquer | clonar o repositório |
 
-## 🏛️ Arquitetura
+O `server/global.json` fixa o SDK em 8.0.401 com `rollForward: latestMajor`: se você tiver
+apenas o SDK 9 ou 10 instalado, ele é usado sem problema. Os projetos continuam em `net8.0`.
 
-A solução foi estruturada seguindo os princípios da **Clean Architecture**, promovendo a separação de responsabilidades, baixo acoplamento e alta testabilidade.
-
--   **Domain:** Contém as entidades de negócio (`Credito`) e as abstrações mais centrais. Não depende de nenhuma outra camada.
--   **Application:** Orquestra o fluxo de dados e contém a lógica de negócio. Define as interfaces dos repositórios e serviços externos (como o `IMessagePublisher`). Depende apenas da camada de Domain.
--   **Infrastructure:** Implementa as interfaces definidas na camada de Application. É aqui que se encontram o acesso ao banco de dados (Entity Framework Core, Repositórios), a comunicação com o message broker (Kafka) e outras dependências de infraestrutura.
--   **API:** A camada de apresentação. Contém os Controllers, a configuração do pipeline de injeção de dependência, middlewares e o `Dockerfile`. É o ponto de entrada da aplicação.
-
-O uso do **Apache Kafka** como intermediário para a escrita de dados desacopla a API do processo de persistência, permitindo que a aplicação absorva picos de requisições sem sobrecarregar o banco de dados e melhorando a experiência do usuário com respostas mais rápidas.
-
-## 🚀 Tecnologias Utilizadas
-
--   **Framework:** .NET 8
--   **Linguagem:** C# 12
--   **Banco de Dados:** PostgreSQL 15
--   **ORM:** Entity Framework Core 8
--   **Mensageria:** Apache Kafka (com a biblioteca `Confluent.Kafka`)
--   **Containerização:** Docker & Docker Compose
--   **Arquitetura:** Clean Architecture
--   **Validação:** FluentValidation
--   **API Documentation:** Swagger (OpenAPI)
--   **Testes:** xUnit, Moq
-
-
-## 🏁 Como Executar o Projeto
-
-O projeto é totalmente containerizado e inclui um `Makefile` para simplificar as operações do Docker.
-
-## ⚙️ Pré-requisitos
-
-Para executar este projeto, você precisará ter instalado em sua máquina:
-
--   [Docker](https://www.docker.com/get-started )
--   [Docker Compose](https://docs.docker.com/compose/install/ ) (geralmente já vem com o Docker Desktop)
--   [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0 ) (para executar os comandos do Entity Framework manually)
--   Um cliente Git (para clonar o repositório)
--   Um editor de código como VS Code ou Visual Studio.
-
-
-### 1. Clone o Repositório
+### Sequência que funciona
 
 ```bash
+# 1. clonar
 git clone https://github.com/Deullam/Deullam-Credit-Inquiry-Challenge
 cd Deullam-Credit-Inquiry-Challenge/server
-```
 
-### 2. Crie o Arquivo de Ambiente
-Na pasta server/, crie um arquivo chamado .env. Ele guardará as configurações dos serviços. Copie e cole o conteúdo abaixo:
-
-# Credenciais de exemplo arquivo .env
-``` 
-DB_USER=admin
-DB_PASSWORD=admin
-DB_NAME=credits_db
-
-# String de Conexão do Kafka
-KAFKA_CONNECTION_STRING=kafka:9092
-```
-
-
-### 3. Suba o Ambiente com Docker Compose
-Execute o seguinte comando no seu terminal, dentro da pasta server/. Este comando irá construir as imagens, criar os contêineres e iniciar todos os serviços em segundo plano.
-```Bash
+# 2. subir o ambiente (cria o .env a partir do .env.example na primeira vez)
 make up
+
+# 3. aplicar as migrations no banco do contêiner
+make migrate
 ```
-A primeira execução pode levar alguns minutos para baixar as imagens do Docker. Ao final do processo, todos os serviços estarão rodando. Para aplicar as migrações do banco de dados, execute ```make migrate```.
 
+A primeira execução baixa as imagens e compila a API; pode levar alguns minutos.
 
+Não é preciso criar o `.env` à mão: `make up` copia `server/.env.example` para `server/.env` se
+ele não existir. O arquivo traz credenciais de desenvolvimento local e é ignorado pelo Git.
 
-### 4. Verifique se tudo está funcionando
-Documentação da API (Swagger): Abra seu navegador e acesse http://localhost:8080/swagger.
-Health Checks: Acesse http://localhost:8080/health/ready para ver o status da API e de suas dependências.
-Banco de Dados (pgAdmin): Acesse http://localhost:443 (ou a porta que você configurou), faça login com admin@admin.com / admin e conecte-se ao servidor credit-inquiry-db para visualizar as tabelas.
+`make migrate` roda no host e alcança o PostgreSQL pela porta `5432` publicada pelo compose. O
+`dotnet-ef` vem do manifesto local em `server/.config/dotnet-tools.json` — o alvo roda
+`dotnet tool restore` antes, então nada é instalado globalmente. Para apontar para outro banco:
 
+```bash
+make migrate DB_CONNECTION="Host=localhost;Port=5432;Database=outro;Username=u;Password=p"
+```
 
+### Verificando
 
-### Comandos Úteis do Makefile
+| O quê | URL |
+| :--- | :--- |
+| Swagger | <http://localhost:8080/swagger> |
+| Readiness (PostgreSQL + Kafka) | <http://localhost:8080/health/ready> |
+| Liveness | <http://localhost:8080/health/self> |
+| pgAdmin (`admin@admin.com` / `admin`) | <http://localhost:443> |
+
+O Swagger só é exposto em ambiente de desenvolvimento; o `docker-compose.yml` já define
+`ASPNETCORE_ENVIRONMENT=Development`. O pgAdmin escuta na porta 443 do contêiner
+(`PGADMIN_LISTEN_PORT`), publicada em 443 no host, e serve HTTP puro — daí o `http://`.
+
+### Encerrando
+
+```bash
+make down      # para os contêineres, preserva os dados
+make destroy   # para os contêineres e apaga os volumes
+```
+
+### Comandos do Makefile
 
 | Comando | Descrição |
 | :--- | :--- |
-| `make up` | Constrói as imagens Docker (se necessário) e inicia todos os serviços em segundo plano. |
-| `make down` | Para todos os contêineres em execução relacionados ao projeto. |
-| `make destroy` | Para e remover os contêineres, redes e **volumes de dados**. Use para uma limpeza completa. |
-| `make logs` | Exibe os logs de todos os serviços em tempo real, útil para depuração. |
-| `make migrate` | Aplica manualmente as migrações do EF Core ao banco de dados. Requer que o banco esteja no ar. |
-| `make help` | Mostra uma lista de todos os comandos disponíveis e suas descrições. |
-
-
-
-
-## 📖 Documentação da API
-
-A documentação completa e interativa da API está disponível via Swagger. Após iniciar o projeto, acesse:
-
-#### `http://localhost:8080/swagger`
-
-A seguir, um resumo dos endpoints disponíveis.
+| `make up` | Cria o `.env` se faltar, constrói as imagens se necessário e sobe todos os serviços em segundo plano. |
+| `make migrate` | Aplica as migrations do EF Core ao banco. Requer o banco no ar. |
+| `make test` | Roda todos os testes da solução. |
+| `make logs` | Exibe os logs de todos os serviços em tempo real. |
+| `make build` | Reconstrói as imagens sem cache. |
+| `make start` | `up` seguido de `logs`. |
+| `make down` | Para os contêineres, mantendo os volumes. |
+| `make destroy` | Para os contêineres e remove os volumes de dados. |
+| `make help` | Lista os comandos disponíveis. |
 
 ---
 
-### Integração de Créditos
+## Testes
 
-#### `POST /api/creditos/integrar-credito-constituido`
+```bash
+cd server
+dotnet test Deullam.Credit.Inquiry.Challenge.sln     # ou: make test
+```
 
-Enfileira uma lista de créditos para serem processados e salvos de forma assíncrona. Este é o método principal para inserir novos dados no sistema.
+São quatro projetos com sufixo `.Tests`. Três têm testes, todos em **NUnit** com **FluentAssertions**; o quarto, `...Common.Tests`, é só a biblioteca de ObjectMothers compartilhada pelos outros e não contém teste algum:
 
-**Corpo da Requisição (`application/json`)**
+| Projeto | Cobre |
+| :--- | :--- |
+| `...Domain.Tests` | criação da entidade `Credito` com dados válidos. |
+| `...Application.Tests` | `CreditoService` com repositório em `Moq`: consulta, ausência de registro, duplicidade e validação. |
+| `...Integration.Tests` | a API inteira, via `WebApplicationFactory`. |
+
+### O que a suíte de integração cobre, e com que dublês
+
+A API sobe inteira em memória com `WebApplicationFactory<Program>`. Pipeline HTTP, middleware de
+exceção, controllers, AutoMapper, repositórios e EF Core são o código de
+produção, sem alteração. A validação do FluentValidation (`CreditoDtoValidator`) existe, mas hoje
+nenhum caminho HTTP a exercita: na borda vale a validação automática do `[ApiController]` sobre os
+campos `required` do `CreditoDto`. Só há **dois dublês**, ambos para não precisar de um broker real:
+
+- **Produtor Kafka** — a abstração `IMessagePublisher`, implementada em produção por
+  `KafkaPublisher`, é substituída por um `FakeMessagePublisher` que guarda tópico e payload de
+  cada mensagem. É o que permite afirmar o que a API publicaria.
+- **Consumidor** — o `CreditoConsumerService` não é iniciado, já que não há tópico para escutar.
+  O teste do ciclo completo reprocessa a mensagem capturada chamando o mesmo
+  `ICreditoService.CreateIfNotExistsAsync` que o `BackgroundService` chama, em um escopo de DI
+  próprio. Ou seja: o passo de processamento é o de produção, o laço de consumo do Kafka não é
+  exercitado.
+
+O banco depende do que a máquina tem:
+
+- **com Docker** (`docker info` responde): um PostgreSQL 15 descartável via **Testcontainers**,
+  com o schema criado pelas **migrations reais** do EF Core;
+- **sem Docker**: um arquivo **SQLite** temporário, com o schema criado a partir do modelo
+  (`EnsureCreated`). *Limitação conhecida:* nesse modo as migrations do Npgsql não são
+  exercitadas e o health check de PostgreSQL não tem servidor para consultar. O restante da
+  cobertura — HTTP, desserialização, mensageria e persistência — continua valendo.
+
+Os oito testes são independentes entre si: cada um usa seu próprio número de crédito e nenhum
+depende da ordem de execução.
+
+| Teste | Afirma |
+| :--- | :--- |
+| `Post_ComListaValida_...` | `202` e exatamente uma mensagem publicada, no tópico e com o payload esperados. |
+| `Post_ComListaVazia_...` | `400` e nenhuma mensagem publicada. |
+| `Post_ComCampoObrigatorioAusente_...` | `400` com os erros de validação e nenhuma mensagem publicada. |
+| `Get_ComNumeroCreditoInexistente_...` | `404`. |
+| `Get_AposOConsumidorProcessarAMensagem_...` | `404` logo após o `202` e `200` com o registro depois do processamento. |
+| `Get_PorNumeroNfse_...` | a consulta por NFS-e devolve os créditos daquela nota. |
+| `HealthSelf_...` | `/health/self` responde `Healthy`. |
+| `HealthReady_...` | `/health/ready` responde e reporta PostgreSQL e Kafka. |
+
+`/health/ready` sai degradado na suíte de propósito: o host de teste não tem broker Kafka, então
+o teste afirma o que vale nos dois casos — que o endpoint está mapeado e cobre as duas
+dependências críticas.
+
+---
+
+## Documentação da API
+
+Documentação interativa em <http://localhost:8080/swagger>.
+
+### `POST /api/creditos/integrar-credito-constituido`
+
+Enfileira uma lista de créditos para processamento assíncrono.
+
+**Corpo da requisição (`application/json`)**
 
 ```json
 [
@@ -152,105 +235,96 @@ Enfileira uma lista de créditos para serem processados e salvos de forma assín
     "baseCalculo": 25000.00
   }
 ]
-
 ```
 
-#### Respostas Possíveis
+**Respostas**
 
-| Código | Status | Descrição |
+| Código | Status | Quando |
 | :--- | :--- | :--- |
-| `202` | `Accepted` | A requisição foi aceita e as mensagens foram enfileiradas para processamento. |
-| `400` | `Bad Request` | O corpo da requisição é inválido (nulo, vazio ou com erros de validação). |
-| `500` | `Internal Server Error` | Ocorreu um erro inesperado, como falha ao publicar no Kafka. |
+| `202` | Accepted | As mensagens foram enfileiradas. Não significa que os créditos já estão gravados. |
+| `400` | Bad Request | Lista nula ou vazia, ou corpo que não desserializa no `CreditoDto`. |
+| `500` | Internal Server Error | Falha ao publicar no Kafka, por exemplo. |
 
+### `GET /api/creditos/credito/{numeroCredito}`
 
-### Consulta de Créditos
+Busca um crédito pelo número do crédito.
 
-#### `GET /api/creditos/credito/{numeroCredito}`
-Busca um crédito específico pelo seu número de crédito.
-
-##### Parâmetros de Rota
-Parâmetro Tipo Descrição numeroCredito string
-O número do crédito a ser buscado.
-
-##### Respostas Possíveis
-
-| Código | Status | Descrição |
+| Código | Status | Quando |
 | :--- | :--- | :--- |
-| `200` | `OK` | Retorna o objeto do crédito encontrado. |
-| `404` | `Not Found` | Nenhum crédito com o ID fornecido foi encontrado. |
-| `500` | `Internal Server Error` | Ocorreu um erro inesperado, como falha ao publicar no Kafka. |
+| `200` | OK | Retorna o crédito. |
+| `404` | Not Found | Nenhum crédito com esse número. |
+| `503` | Service Unavailable | Falha transitória de banco. |
+| `500` | Internal Server Error | Erro inesperado. |
 
+### `GET /api/creditos/nfse/{numeroNfse}`
 
-#### `GET /api/creditos/nfse/{numeroNfse}`
-Busca um crédito específico pelo seu número nfse.
+Lista os créditos de uma NFS-e. Quando não há nenhum, responde `200` com lista vazia — não `404`.
 
-##### Parâmetros de Rota
-Parâmetro Tipo Descrição numeroNfse  string 
-O número do crédito a ser buscado.
+**Resposta (200 OK)**
 
-Retorna o crédito constituído que já foi processado.
-
-Resposta de Sucesso (200 OK)
-```JSON
+```json
 [
   {
-    "id": 1,
     "numeroCredito": "123456",
     "numeroNfse": "7891011",
     "dataConstituicao": "2024-02-25T00:00:00",
     "valorIssqn": 1500.75,
-    // ... outros campos
+    "tipoCredito": "ISSQN",
+    "simplesNacional": "Sim",
+    "aliquota": 5.0,
+    "valorFaturado": 30000.00,
+    "valorDeducao": 5000.00,
+    "baseCalculo": 25000.00
   }
 ]
-
 ```
 
-##### Respostas Possíveis
-| Código | Status | Descrição |
+| Código | Status | Quando |
 | :--- | :--- | :--- |
-| `200` | `OK` | Retorna o objeto do crédito encontrado. |
-| `404` | `Not Found` | Nenhum crédito com o ID fornecido foi encontrado. |
-| `500` | `Internal Server Error` | Ocorreu um erro inesperado, como falha ao publicar no Kafka. |
-
-
+| `200` | OK | Lista de créditos da NFS-e, possivelmente vazia. |
+| `503` | Service Unavailable | Falha transitória de banco. |
+| `500` | Internal Server Error | Erro inesperado. |
 
 ### Monitoramento
 
 #### `GET /health/self`
-Endpoint de liveness. Usado para verificar se a aplicação está online e respondendo a requisições.
-Resposta de Sucesso (200 OK)
-```JSON
+
+Liveness: a aplicação está no ar. Não consulta dependência nenhuma.
+
+```json
 {
   "status": "Healthy",
-  "totalDuration": "00:00:00.0015486"
-} 
+  "totalDuration": "00:00:00.0015486",
+  "entries": {}
+}
 ```
+
 #### `GET /health/ready`
-Endpoint de readiness. Usado para verificar se a aplicação está pronta para receber tráfego, validando a saúde de suas dependências críticas.
-Resposta de Sucesso (200 OK)
-``` JSON
+
+Readiness: a aplicação está pronta para receber tráfego, com o estado de cada dependência
+crítica.
+
+```json
 {
   "status": "Healthy",
   "totalDuration": "00:00:00.0543012",
-  "results": {
+  "entries": {
     "PostgreSQL": {
       "status": "Healthy",
-      "description": "PostgreSQL is healthy.",
       "duration": "00:00:00.0123456"
     },
     "Kafka": {
       "status": "Healthy",
-      "description": "Kafka is healthy.",
       "duration": "00:00:00.0423456"
     }
   }
 }
 ```
 
+Responde `503` quando alguma dependência está indisponível.
 
 ---
 
 <div align="center">
-<h2> Desenvolvido por Deullam Justi </h2>
+<h2>Desenvolvido por Deullam Justi</h2>
 </div>

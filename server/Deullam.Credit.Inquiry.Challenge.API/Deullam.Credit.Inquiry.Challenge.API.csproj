@@ -39,7 +39,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<InternalsVisibleTo Include="..\Deullam.Credit.Inquiry.Challenge.Integration.Tests" />
+		<InternalsVisibleTo Include="Deullam.Credit.Inquiry.Challenge.Integration.Tests" />
 	</ItemGroup>
 
 </Project>
