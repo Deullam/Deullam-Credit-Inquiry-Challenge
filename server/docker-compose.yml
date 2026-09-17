@@ -10,12 +10,14 @@ services:
     container_name: credit-inquiry-Api
     ports:
       - "8080:8080"
-      - "8081:8081"
     env_file:
       - .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080;https://+:8081
+      # Só HTTP no compose: com https://+:8081 o Kestrel exige um certificado de desenvolvimento
+      # (montado só no Windows pelo docker-compose.override.yml); sem ele a API não sobe, e com ele
+      # o UseHttpsRedirection devolve 307 para as URLs http documentadas no README.
+      - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
       - ConnectionStrings__Kafka=${KAFKA_CONNECTION_STRING}
 
