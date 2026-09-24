@@ -43,6 +43,20 @@ responde `404` — ele só aparece quando o consumidor processar a mensagem. Em 
 
 ## Arquitetura
 
+```mermaid
+flowchart LR
+    Cliente -->|"POST lista de créditos"| API
+    API -->|"publica 1 mensagem por crédito"| Topico[("Kafka<br/>integrar-credito-constituido-entry")]
+    API -.->|"202 Accepted, na hora"| Cliente
+    Topico --> Consumidor["CreditoConsumerService<br/>BackgroundService"]
+    Consumidor -->|"grava se ainda não existir"| Banco[("PostgreSQL")]
+    Cliente -->|"GET por crédito ou por NFS-e"| API
+    API -->|"lê"| Banco
+```
+
+Entre o `202` e a gravação existe uma janela: nela, o `GET` do mesmo crédito responde `404`.
+É por isso que a recusa de duplicado acontece no consumidor, e não na resposta do `POST`.
+
 - **Domain** — entidade `Credito`, exceções de negócio e a interface do repositório. Não
   depende de nenhuma outra camada da solução.
 - **Application** — `CreditoService`, DTOs, validadores e as abstrações de serviços externos
@@ -125,6 +139,12 @@ make migrate DB_CONNECTION="Host=localhost;Port=5432;Database=outro;Username=u;P
 O Swagger só é exposto em ambiente de desenvolvimento; o `docker-compose.yml` já define
 `ASPNETCORE_ENVIRONMENT=Development`. O pgAdmin escuta na porta 443 do contêiner
 (`PGADMIN_LISTEN_PORT`), publicada em 443 no host, e serve HTTP puro — daí o `http://`.
+
+![Swagger da API, com as três rotas de créditos](docs/img/swagger.png)
+
+O readiness responde com o estado de cada dependência, uma entrada por serviço:
+
+![Resposta do /health/ready com PostgreSQL e Kafka saudáveis](docs/img/health-ready.png)
 
 ### Encerrando
 
@@ -283,6 +303,8 @@ Enfileira uma lista de créditos para processamento assíncrono.
 | `400` | Bad Request | Lista nula ou vazia, ou corpo que não desserializa no `CreditoDto`. |
 | `500` | Internal Server Error | Falha ao publicar no Kafka, por exemplo. |
 
+![POST executado no Swagger devolvendo 202 Accepted](docs/img/swagger-post-202.png)
+
 ### `GET /api/creditos/credito/{numeroCredito}`
 
 Busca um crédito pelo número do crédito.
@@ -323,6 +345,8 @@ Lista os créditos de uma NFS-e. Quando não há nenhum, responde `200` com list
 | `503` | Service Unavailable | Falha transitória de banco. |
 | `500` | Internal Server Error | Erro inesperado. |
 
+![GET por NFS-e no Swagger devolvendo os créditos gravados](docs/img/swagger-get-200.png)
+
 ### Monitoramento
 
 #### `GET /health/self`
@@ -360,6 +384,33 @@ crítica.
 ```
 
 Responde `503` quando alguma dependência está indisponível.
+
+---
+
+## Limitações conhecidas
+
+Este é um desafio técnico, não um serviço em produção. O que está fora de escopo, de propósito
+ou por dívida assumida:
+
+- **Sem autenticação e sem autorização.** As três rotas são abertas. Não há conceito de usuário,
+  cliente ou tenant em lugar nenhum do código.
+- **A validação semântica não roda em nenhum caminho HTTP.** O `CreditoDtoValidator`
+  (FluentValidation) só é chamado por `CreditoService.IntegrarCreditosAsync`, e nenhum caminho da
+  API invoca esse método: o controller publica no Kafka e o consumidor chama
+  `CreateIfNotExistsAsync`. Na prática, um crédito com `valorIssqn` negativo é aceito e gravado.
+  A validação de borda que existe é a automática do `[ApiController]` sobre os campos
+  obrigatórios do `CreditoDto`. Corrigir isso é decidir onde validar — antes de enfileirar ou no
+  consumidor antes de gravar — e muda comportamento, então ficou registrado em vez de remendado.
+- **Sem integração contínua.** Não há workflow do GitHub Actions: build, testes e a suíte E2E
+  rodam na máquina de quem clona.
+- **Sem retentativa nem dead-letter no consumidor.** Uma mensagem que falhe ao gravar por motivo
+  transitório não volta para a fila nem vai para um tópico de descarte.
+- **Sem observabilidade além dos health checks.** Não há métricas, tracing distribuído nem log
+  estruturado com correlação por requisição.
+- **Um único ambiente.** O `docker-compose.yml` serve desenvolvimento local; não há manifesto de
+  produção, e as credenciais do `.env.example` são de desenvolvimento.
+- **`AutoMapper 12.0.1` tem vulnerabilidade conhecida (NU1903)** e continua fixado por
+  compatibilidade; atualizar é item pendente.
 
 ---
 
